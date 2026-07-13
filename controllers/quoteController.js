@@ -1,13 +1,16 @@
 import Quote from "../models/Quote.js"; 
 import nodemailer from "nodemailer";
 
-// Setup Email Transporter
+// Setup Email Transporter - Ye settings 'ETIMEDOUT' ko fix karengi
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Port 465 ke liye true rakhein
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD 
-  }
+  },
+  timeout: 10000 // 10 second ka timeout, taki connection time mile
 });
 
 // @desc    Create new quote & send email
@@ -31,9 +34,9 @@ const createQuote = async (req, res) => {
 
     res.status(201).json({ success: true, data: newQuote });
   } catch (error) {
-  
     console.error("ASLI ERROR YAHAN HAI:", error);
     
+ 
     res.status(500).json({ success: false, error: "Failed to submit quote." });
   }
 };
@@ -42,7 +45,6 @@ const createQuote = async (req, res) => {
 // @route   GET /api/quotes
 const getQuotes = async (req, res) => {
   try {
-    // Fetches all quotes, sorted by newest first
     const quotes = await Quote.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: quotes });
   } catch (error) {
