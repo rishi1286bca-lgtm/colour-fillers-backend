@@ -1,4 +1,4 @@
-import Quote from "../models/Quote.js"; // Note the .js extension
+import Quote from "../models/Quote.js"; 
 import nodemailer from "nodemailer";
 
 // Setup Email Transporter
@@ -31,6 +31,9 @@ const createQuote = async (req, res) => {
 
     res.status(201).json({ success: true, data: newQuote });
   } catch (error) {
+  
+    console.error("ASLI ERROR YAHAN HAI:", error);
+    
     res.status(500).json({ success: false, error: "Failed to submit quote." });
   }
 };
@@ -43,6 +46,7 @@ const getQuotes = async (req, res) => {
     const quotes = await Quote.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: quotes });
   } catch (error) {
+    console.error("🔥 DASHBOARD FETCH ERROR:", error);
     res.status(500).json({ success: false, error: "Failed to fetch quotes." });
   }
 };

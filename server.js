@@ -15,6 +15,7 @@ const app = express();
 connectDB();
 
 app.use(express.json());
+
 const allowedOrigins = [
   process.env.WEBSITE_URL,
   process.env.DASHBOARD_URL
