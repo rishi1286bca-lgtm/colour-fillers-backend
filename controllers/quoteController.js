@@ -1,10 +1,17 @@
 import Quote from "../models/Quote.js";
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+// Render's network has no outbound IPv6 route, but Node resolves
+// smtp.gmail.com to an IPv6 address first by default, causing
+// ENETUNREACH. Force IPv4 resolution first to fix that.
+dns.setDefaultResultOrder("ipv4first");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true, // Port 465
+  family: 4, // force IPv4, belt-and-suspenders alongside dns.setDefaultResultOrder above
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD
