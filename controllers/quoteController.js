@@ -1,44 +1,47 @@
-import Quote from "../models/Quote.js"; 
+import Quote from "../models/Quote.js";
 import nodemailer from "nodemailer";
 
-// Setup Email Transporter - Ye settings 'ETIMEDOUT' ko fix karengi
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
-  secure: true, // Port 465 ke liye true rakhein
+  secure: true, // Port 465
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD 
+    pass: process.env.EMAIL_APP_PASSWORD
   },
-  timeout: 10000 // 10 second ka timeout, taki connection time mile
+  timeout: 10000
 });
 
 // @desc    Create new quote & send email
 // @route   POST /api/quotes
 const createQuote = async (req, res) => {
+  const { name, email, phone, message } = req.body;
+
+  // 1. Save to Database — this is the part that MUST succeed for the client
+  let newQuote;
   try {
-    const { name, email, phone, message } = req.body;
+    newQuote = await Quote.create({ name, email, phone, message });
+  } catch (dbError) {
+    console.error("DB SAVE ERROR:", dbError);
+    return res.status(500).json({ success: false, error: "Failed to save quote." });
+  }
 
-    // 1. Save to Database
-    const newQuote = await Quote.create({ name, email, phone, message });
-
-    // 2. Send Email
+  // 2. Send Email — best-effort, should NOT fail the client response
+  try {
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: 'rishitiwari1286@gmail.com',
+      to: "rishitiwari1286@gmail.com",
       subject: `New Quote Request from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`
     };
-    
-    await transporter.sendMail(mailOptions);
 
-    res.status(201).json({ success: true, data: newQuote });
-  } catch (error) {
-    console.error("ASLI ERROR YAHAN HAI:", error);
-    
- 
-    res.status(500).json({ success: false, error: "Failed to submit quote." });
+    await transporter.sendMail(mailOptions);
+  } catch (mailError) {
+    // Log it so you can see it in Render logs, but don't block the user
+    console.error("EMAIL SEND ERROR (quote was still saved):", mailError);
   }
+
+  res.status(201).json({ success: true, data: newQuote });
 };
 
 // @desc    Get all quotes for the dashboard
