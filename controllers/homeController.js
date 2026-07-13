@@ -1,5 +1,5 @@
 import Home from "../models/home.js";
-import { uploadToCloud, deleteFromCloud } from "../utils/cloudUpload.js";
+import { uploadToCloud, deleteFromCloud } from "../utils/CloudUpload.js";
 
 // Sections allowed to be patched via PUT /api/home
 const ALLOWED_SECTIONS = [
