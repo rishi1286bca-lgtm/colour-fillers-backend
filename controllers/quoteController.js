@@ -22,7 +22,7 @@ const createQuote = async (req, res) => {
     // 2. Send Email
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: 'info@colourfillers.com',
+      to: 'rishitiwari1286@gmail.com',
       subject: `New Quote Request from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`
     };
