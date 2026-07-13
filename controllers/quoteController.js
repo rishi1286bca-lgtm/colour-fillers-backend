@@ -1,58 +1,41 @@
-import Quote from "../models/Quote.js";
+import Quote from "../models/Quote.js"; 
 import nodemailer from "nodemailer";
-import dns from "dns";
 
-// Render's containers have no outbound IPv6 route, but smtp.gmail.com
-// resolves to an IPv6 address, causing ENETUNREACH. `family`/
-// `setDefaultResultOrder` aren't reliably honored by nodemailer's
-// underlying socket connect, so we force it with a custom `lookup`
-// function that always resolves to an IPv4 address.
-const ipv4Lookup = (hostname, options, callback) => {
-  dns.lookup(hostname, { family: 4 }, callback);
-};
-
+// Brevo (Sendinblue) SMTP Setup
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // Port 465
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false, 
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD
-  },
-  lookup: ipv4Lookup,
-  timeout: 10000
+    pass: process.env.EMAIL_APP_PASSWORD 
+  }
 });
 
 // @desc    Create new quote & send email
 // @route   POST /api/quotes
 const createQuote = async (req, res) => {
-  const { name, email, phone, message } = req.body;
-
-  // 1. Save to Database — this is the part that MUST succeed for the client
-  let newQuote;
   try {
-    newQuote = await Quote.create({ name, email, phone, message });
-  } catch (dbError) {
-    console.error("DB SAVE ERROR:", dbError);
-    return res.status(500).json({ success: false, error: "Failed to save quote." });
-  }
+    const { name, email, phone, message } = req.body;
 
-  // 2. Send Email — best-effort, should NOT fail the client response
-  try {
+    // 1. Save to Database
+    const newQuote = await Quote.create({ name, email, phone, message });
+
+    // 2. Send Email
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: "rishitiwari1286@gmail.com",
+      from: process.env.EMAIL_USER, // Sender email (Brevo login email)
+      to: 'info@colourfillers.com', // Aapki receiver email
       subject: `New Quote Request from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`
     };
-
+    
     await transporter.sendMail(mailOptions);
-  } catch (mailError) {
-    // Log it so you can see it in Render logs, but don't block the user
-    console.error("EMAIL SEND ERROR (quote was still saved):", mailError);
-  }
 
-  res.status(201).json({ success: true, data: newQuote });
+    res.status(201).json({ success: true, data: newQuote });
+  } catch (error) {
+    console.error("🔥 ERROR DETAILS:", error);
+    res.status(500).json({ success: false, error: "Failed to submit quote." });
+  }
 };
 
 // @desc    Get all quotes for the dashboard
