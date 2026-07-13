@@ -1,18 +1,6 @@
 import Quote from "../models/Quote.js"; 
-import nodemailer from "nodemailer";
 
-// Brevo (Sendinblue) SMTP Setup
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false, 
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD 
-  }
-});
-
-// @desc    Create new quote & send email
+// @desc    Create new quote & send email via Brevo API
 // @route   POST /api/quotes
 const createQuote = async (req, res) => {
   try {
@@ -21,19 +9,31 @@ const createQuote = async (req, res) => {
     // 1. Save to Database
     const newQuote = await Quote.create({ name, email, phone, message });
 
-    // 2. Send Email
-    const mailOptions = {
-      from: process.env.EMAIL_USER, // Sender email (Brevo login email)
-      to: 'info@colourfillers.com', // Aapki receiver email
-      subject: `New Quote Request from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`
-    };
-    
-    await transporter.sendMail(mailOptions);
+    // 2. Send Email using Brevo REST API (Bypasses Render's firewall)
+    const brevoResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": process.env.EMAIL_APP_PASSWORD, // Aapki nayi Brevo API Key
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        sender: { email: process.env.EMAIL_USER, name: "Website Form" },
+        to: [{ email: 'info@colourfillers.com' }], // Aapki receiver email
+        subject: `New Quote Request from ${name}`,
+        textContent: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`
+      })
+    });
+
+    if (!brevoResponse.ok) {
+       const errData = await brevoResponse.json();
+       console.error("🔥 BREVO API ERROR:", errData);
+       throw new Error("Email sending failed at Brevo");
+    }
 
     res.status(201).json({ success: true, data: newQuote });
   } catch (error) {
-    console.error("🔥 ERROR DETAILS:", error);
+    console.error("🔥 CRITICAL ERROR DETAILS:", error);
     res.status(500).json({ success: false, error: "Failed to submit quote." });
   }
 };
