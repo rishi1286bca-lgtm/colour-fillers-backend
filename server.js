@@ -18,7 +18,8 @@ app.use(express.json());
 
 const allowedOrigins = [
   process.env.WEBSITE_URL,
-  process.env.DASHBOARD_URL
+  process.env.DASHBOARD_URL,
+  process.env.MAIN_SITE_URL
 ];
 
 app.use(
